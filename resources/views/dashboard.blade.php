@@ -106,10 +106,29 @@
       animation: pulse-green 2s infinite;
     }
     .conn-dot.offline { background: #6b7280; animation: none; }
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 14px;
+      z-index: 100;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.3s ease;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.success { background: #064e3b; color: #34d399; border: 1px solid #059669; }
+    .toast.error { background: #450a0a; color: #f87171; border: 1px solid #dc2626; }
   </style>
 </head>
 <body class="bg-grid min-h-screen">
 
+  <!-- Toast Notification -->
+  <div id="toast" class="toast"></div>
+
+  <!-- DANGER OVERLAY -->
   <div class="danger-overlay flex-col items-center justify-center p-6" id="dangerOverlay">
     <div class="danger-border p-10 text-center max-w-lg w-full mx-auto">
       <div class="alert-icon text-8xl mb-6" id="dangerIcon">🔥</div>
@@ -121,8 +140,10 @@
     </div>
   </div>
 
+  <!-- MAIN LAYOUT -->
   <div class="max-w-5xl mx-auto p-6">
 
+    <!-- Header -->
     <div class="flex items-center justify-between mb-10">
       <div>
         <h1 class="text-3xl font-bold text-white mb-1">Smart Safety Monitor</h1>
@@ -135,6 +156,7 @@
       </div>
     </div>
 
+    <!-- Safe / Danger banner -->
     <div id="statusBanner" class="card p-5 mb-6 flex items-center gap-4">
       <div class="dot safe" id="mainDot"></div>
       <div>
@@ -146,8 +168,10 @@
       </div>
     </div>
 
+    <!-- Stats Grid -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
 
+      <!-- Temp -->
       <div class="card p-5 col-span-2 md:col-span-1">
         <p class="text-slate-400 text-xs mb-3">درجة الحرارة</p>
         <div class="big-value text-orange-400" id="tempVal">--</div>
@@ -157,6 +181,7 @@
         </div>
       </div>
 
+      <!-- Humidity -->
       <div class="card p-5 col-span-2 md:col-span-1">
         <p class="text-slate-400 text-xs mb-3">الرطوبة</p>
         <div class="big-value text-blue-400" id="humiVal">--</div>
@@ -166,12 +191,14 @@
         </div>
       </div>
 
+      <!-- Flame -->
       <div class="card p-5" id="flameCard">
         <p class="text-slate-400 text-xs mb-3">كاشف اللهب</p>
         <div class="text-4xl mb-2" id="flameIcon">🟢</div>
         <p class="text-sm font-medium" id="flameStatus">آمن</p>
       </div>
 
+      <!-- Gas -->
       <div class="card p-5" id="gasCard">
         <p class="text-slate-400 text-xs mb-3">كاشف الغاز</p>
         <div class="text-4xl mb-2" id="gasIcon">🟢</div>
@@ -180,8 +207,14 @@
 
     </div>
 
+    <!-- History -->
     <div class="card p-5">
-      <h2 class="text-sm text-slate-400 mb-4 font-medium">آخر الأحداث</h2>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-sm text-slate-400 font-medium">آخر الأحداث</h2>
+        <button onclick="clearSafeRecords()" class="text-xs px-3 py-1.5 bg-red-900/50 hover:bg-red-800/50 text-red-300 rounded-lg border border-red-800/50 transition">
+          🗑️ مسح السجلات الآمنة
+        </button>
+      </div>
       <div class="history-list space-y-2" id="historyList">
         <p class="text-slate-500 text-sm text-center py-4">لا توجد أحداث بعد</p>
       </div>
@@ -191,11 +224,19 @@
   </div>
 
   <script>
-    const API_URL = "{{ url('/api/sensor') }}";
+    // ===== إصلاح Mixed Content: استخدم Relative URL =====
+    const API_URL = "/api/sensor";
 
     let prevData = null;
     let overlayDismissed = false;
     const history = [];
+
+    function showToast(msg, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.className = 'toast ' + type + ' show';
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
 
     function formatTime(d = new Date()) {
       return d.toLocaleTimeString('ar-EG');
@@ -318,6 +359,27 @@
     function setOffline() {
       document.getElementById('connDot').className = 'conn-dot offline';
       document.getElementById('connStatus').textContent = 'غير متصل';
+    }
+
+    // ===== دالة مسح السجلات الآمنة =====
+    async function clearSafeRecords() {
+      if (!confirm('هل أنت متأكد من مسح السجلات الآمنة؟')) return;
+      
+      try {
+        const res = await fetch(API_URL + '/clear-safe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const result = await res.json();
+        if (result.status === 'ok') {
+          showToast('✅ تم مسح ' + (result.deleted || 0) + ' سجل آمن', 'success');
+        } else {
+          showToast('❌ فشل المسح', 'error');
+        }
+      } catch (e) {
+        console.error('Clear error:', e);
+        showToast('❌ خطأ في الاتصال', 'error');
+      }
     }
 
     async function fetchData() {
