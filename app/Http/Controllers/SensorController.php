@@ -20,6 +20,13 @@ class SensorController extends Controller
                 'gas'         => 'nullable|boolean',
             ]);
 
+            // ===== حذف السجل السابق إذا كان آمن (غير خطر) =====
+            $previous = Sensor::latest()->first();
+            if ($previous && !$previous->flame && !$previous->gas) {
+                $previous->delete();
+                Log::info('Deleted previous safe record', ['id' => $previous->id]);
+            }
+
             $record = Sensor::create([
                 'temperature' => $validated['temperature'] ?? 0,
                 'humidity'    => $validated['humidity'] ?? 0,
@@ -55,5 +62,32 @@ class SensorController extends Controller
     public function dashboard()
     {
         return view('dashboard');
+    }
+
+    // حذف سجل محدد بالـ ID
+    public function destroy($id)
+    {
+        try {
+            $record = Sensor::findOrFail($id);
+            $record->delete();
+            Log::info('Record deleted', ['id' => $id]);
+            return response()->json(['status' => 'ok', 'message' => 'Deleted']);
+        } catch (\Exception $e) {
+            Log::error('Delete Error: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    // حذف جميع السجلات الآمنة (غير الخطرة)
+    public function clearSafe()
+    {
+        try {
+            $count = Sensor::where('flame', false)->where('gas', false)->delete();
+            Log::info('Cleared safe records', ['count' => $count]);
+            return response()->json(['status' => 'ok', 'deleted' => $count]);
+        } catch (\Exception $e) {
+            Log::error('Clear Safe Error: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
     }
 }
