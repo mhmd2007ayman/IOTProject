@@ -110,7 +110,6 @@
 </head>
 <body class="bg-grid min-h-screen">
 
-  <!-- DANGER OVERLAY -->
   <div class="danger-overlay flex-col items-center justify-center p-6" id="dangerOverlay">
     <div class="danger-border p-10 text-center max-w-lg w-full mx-auto">
       <div class="alert-icon text-8xl mb-6" id="dangerIcon">🔥</div>
@@ -122,10 +121,8 @@
     </div>
   </div>
 
-  <!-- MAIN LAYOUT -->
   <div class="max-w-5xl mx-auto p-6">
 
-    <!-- Header -->
     <div class="flex items-center justify-between mb-10">
       <div>
         <h1 class="text-3xl font-bold text-white mb-1">Smart Safety Monitor</h1>
@@ -138,7 +135,6 @@
       </div>
     </div>
 
-    <!-- Safe / Danger banner -->
     <div id="statusBanner" class="card p-5 mb-6 flex items-center gap-4">
       <div class="dot safe" id="mainDot"></div>
       <div>
@@ -150,10 +146,8 @@
       </div>
     </div>
 
-    <!-- Stats Grid -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
 
-      <!-- Temp -->
       <div class="card p-5 col-span-2 md:col-span-1">
         <p class="text-slate-400 text-xs mb-3">درجة الحرارة</p>
         <div class="big-value text-orange-400" id="tempVal">--</div>
@@ -163,7 +157,6 @@
         </div>
       </div>
 
-      <!-- Humidity -->
       <div class="card p-5 col-span-2 md:col-span-1">
         <p class="text-slate-400 text-xs mb-3">الرطوبة</p>
         <div class="big-value text-blue-400" id="humiVal">--</div>
@@ -173,14 +166,12 @@
         </div>
       </div>
 
-      <!-- Flame -->
       <div class="card p-5" id="flameCard">
         <p class="text-slate-400 text-xs mb-3">كاشف اللهب</p>
         <div class="text-4xl mb-2" id="flameIcon">🟢</div>
         <p class="text-sm font-medium" id="flameStatus">آمن</p>
       </div>
 
-      <!-- Gas -->
       <div class="card p-5" id="gasCard">
         <p class="text-slate-400 text-xs mb-3">كاشف الغاز</p>
         <div class="text-4xl mb-2" id="gasIcon">🟢</div>
@@ -189,7 +180,6 @@
 
     </div>
 
-    <!-- History -->
     <div class="card p-5">
       <h2 class="text-sm text-slate-400 mb-4 font-medium">آخر الأحداث</h2>
       <div class="history-list space-y-2" id="historyList">
@@ -201,7 +191,6 @@
   </div>
 
   <script>
-    // مهم: الـ API Route تغيرت لـ /api/sensor (من api.php)
     const API_URL = "{{ url('/api/sensor') }}";
 
     let prevData = null;
@@ -215,33 +204,29 @@
     function updateUI(data) {
       const isDanger = data.flame || data.gas || data.temperature > 30;
 
-      // Connection
       document.getElementById('connDot').className = 'conn-dot';
       document.getElementById('connStatus').textContent = 'متصل';
       document.getElementById('lastUpdate').textContent = formatTime();
 
-      // Temp
       const temp = parseFloat(data.temperature || 0).toFixed(1);
       const humi = parseFloat(data.humidity || 0).toFixed(1);
+      
       document.getElementById('tempVal').textContent = temp;
       document.getElementById('humiVal').textContent = humi;
       document.getElementById('tempBar').style.width = Math.min(temp / 60 * 100, 100) + '%';
       document.getElementById('tempBar').style.background = data.temperature > 30 ? '#ef4444' : '#f97316';
       document.getElementById('humiBar').style.width = humi + '%';
 
-      // Flame
       document.getElementById('flameIcon').textContent = data.flame ? '🔴' : '🟢';
       document.getElementById('flameStatus').textContent = data.flame ? 'خطر!' : 'آمن';
       document.getElementById('flameStatus').className = 'text-sm font-medium ' + (data.flame ? 'text-red-400 blink' : 'text-emerald-400');
       document.getElementById('flameCard').style.borderColor = data.flame ? 'rgba(239,68,68,0.5)' : '';
 
-      // Gas
       document.getElementById('gasIcon').textContent = data.gas ? '🔴' : '🟢';
       document.getElementById('gasStatus').textContent = data.gas ? 'خطر!' : 'آمن';
       document.getElementById('gasStatus').className = 'text-sm font-medium ' + (data.gas ? 'text-red-400 blink' : 'text-emerald-400');
       document.getElementById('gasCard').style.borderColor = data.gas ? 'rgba(239,68,68,0.5)' : '';
 
-      // Status banner
       const dot = document.getElementById('mainDot');
       const banner = document.getElementById('statusBanner');
       if (isDanger) {
@@ -263,14 +248,12 @@
 
       document.getElementById('statusTime').textContent = formatTime();
 
-      // Danger overlay
       if (isDanger && !overlayDismissed) {
         showDangerOverlay(data);
       } else if (!isDanger) {
         document.getElementById('dangerOverlay').classList.remove('show');
       }
 
-      // History
       if (prevData) {
         const newFlame = data.flame && !prevData.flame;
         const newGas = data.gas && !prevData.gas;
@@ -342,6 +325,7 @@
         const res = await fetch(API_URL);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
+        console.log('API Data:', data);
         if (data) updateUI(data);
       } catch (e) {
         console.error('Fetch error:', e);
